@@ -52,5 +52,5 @@ def executeCommand(args):
     else:
         childpid = os.wait()
 
-if __name__ = "__main__":
+if __name__ == "__main__":
     main()

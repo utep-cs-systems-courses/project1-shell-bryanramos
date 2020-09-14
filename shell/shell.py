@@ -2,7 +2,33 @@
 
 import sys, os, re
 
-def fork(args):
+def main():
+    while True:
+        if 'PS1' in os.environ:
+            os.write(1, (os.environ['PS1']).encode())
+        else:
+            os.write(1, ("$ ").encode())
+
+        try:
+            userInput = input()
+        except EOFError:
+            sys.exit(1)
+        except ValueError:
+            sys.exit(1)
+
+        inputHandler(userInput) # handle input method
+
+def inputHandler(userInput):
+    args = userInput.split() # tokenize user input arguments
+
+    if 'exit' in userInput: # exit command
+        sys.exit(0)
+    elif userInput == "": # for empty input, just reprompt the user
+        pass
+    else:
+        executeCommand(args)
+
+def executeCommand(args):
     pid = os.getpid()
     rc = os.fork()
 
@@ -26,25 +52,5 @@ def fork(args):
     else:
         childpid = os.wait()
 
-while True:
-    if 'PS1' in os.environ:
-        os.write(1, (os.environ['PS1']).encode())
-    else:
-        os.write(1, ('$ ').encode())
-        
-        try:
-            userInput = input()
-        except EOFError:
-            sys.exit(1)
-        except ValueError:
-            sys.exit(1)
-    
-    args = userInput.split() # tokenize user input arguments
-
-    if 'exit' in userInput: # exit command
-        break
-    elif userInput == "": # for empty input, just reprompt the user
-        continue
-    else:
-        fork(args)
-
+if __name__ = "__main__":
+    main()

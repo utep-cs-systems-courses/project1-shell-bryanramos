@@ -23,8 +23,16 @@ def inputHandler(userInput):
 
     if 'exit' in userInput: # exit command
         sys.exit(0)
-    elif userInput == "": # for empty input, just reprompt the user
+    elif userInput == "":   # empty input, just reprompt the user
         pass
+    elif 'cd' in userInput: # change directory
+        try: 
+            os.chdir(args[1])
+            print(os.getcwd())
+        except FileNotFoundError:
+            os.write(1, ("cd: %s: No such file or directory\n" % args[1]).encode())
+            pass
+    
     else:
         executeCommand(args)
 

@@ -4,8 +4,6 @@ import sys, os, re
 
 def main():
 
-    file = open("history.dat", "a+") # history file
-
     while True:
         if 'PS1' in os.environ:
             os.write(1, (os.environ['PS1']).encode())
@@ -18,8 +16,6 @@ def main():
             sys.exit(1)
         except ValueError:
             sys.exit(1)
-
-        file.write("%s\n" % userInput)
 
         inputHandler(userInput) # handle input method
 
@@ -43,36 +39,81 @@ def inputHandler(userInput):
             os.write(1, ("cd %s: No such file or directory" % args[1]).encode())
             pass
 
+    elif ">" in userInput: 
+        redirectOut(args)
+
     elif '|' in userInput: # pipe: used to read the output from one command and use it for the input of another command (i.e. dir | sort)
-        print("Pipe functionality: coming soon!")
-
-    elif args[0] == "history" and len(args) is 1: # history
-        file = open("history.dat", "r") # history file
-        lines = file.readlines()
-        id = 1
-        for line in lines:
-            print(id, line, end = "")
-            id += 1
-
-    elif args[0] == "history" and args[1] is not None:
-        try:
-            id = int(args[1])
-            file = open("history.dat", "r") # history file
-            lines = file.readlines()
-            if lines[id-1] is not None:
-                print(id, lines[id-1])
-            else:
-                print("Cannot locate history for Id %d" % id)
-        except: 
-            os.write(1, ("Improper format for %s" % args[1]).encode())
-    
-
+        pipe(args)
 
     else:
         executeCommand(args)
 
-def executeCommand(args):
+def pipe(args):
+    pid = os.getpid()
+    pipe = args.index("|") # check for pipe symbol in command
 
+    pr, pw = os.pipe() # tuple
+    for f in (pr, pw):
+        os.set_inheritable(f,True)
+    
+    rc = os.fork()
+
+    if rc < 0:
+        os.write(2, ("fork failed, returning %d\n" % rc).encode())
+        sys.exit(1)
+
+    elif rc == 0: # write to pipe from child
+        args = args[:pipe]
+
+        os.close(1)
+
+        fd = os.dup(pw) # dup() duplicates file descriptor 
+        os.set_inheritable(fd, True)
+        for fd in (pr, pw):
+            os.close(fd)
+        if os.path.isfile(args[0]):
+            try:
+                os.execve(args[0], args, os.environ)
+            except FileNotFoundError:
+                pass
+        else:
+            for dir in re.split(":", os.environ['PATH']): # try each directory in the path
+                program = "%s/%s" % (dir, args[0])
+                try:
+                    os.execve(program, args, os.environ) # try to exec program
+                except FileNotFoundError:
+                    pass
+            
+            os.write(2, ("%s: command not found\n" % args[0]).encode()) # command not found, print error message
+            sys.exit(1)
+    
+    else:
+        args = args[pipe+1:]
+        
+        os.close(0)
+
+        fd = os.dup(pr)
+        os.set_inheritable(fd, True)
+        for fd in (pw, pr):
+            os.close(fd)
+        
+        if os.path.isfile(args[0]):
+            try:
+                os.execve(args[0], args, os.environ)
+            except FileNotFoundError:
+                pass
+        else:
+            for dir in re.split(":", os.environ['PATH']): # try each directory in the path
+                program = "%s/%s" % (dir, args[0])
+                try:
+                    os.execve(program, args, os.environ) # try to exec program
+                except FileNotFoundError:
+                    pass
+            
+            os.write(2, ("%s: command not found\n" % args[0]).encode()) # command not found, print error message
+            sys.exit(1)
+
+def executeCommand(args):
     pid = os.getpid()
     rc = os.fork()
 
@@ -97,9 +138,4 @@ def executeCommand(args):
         childpid = os.wait()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        file = open("history.dat", "a+") # history file
-        file.seek(0)                     # absolute file positioning 
-        file.truncate()                  # erase all data
+    main()

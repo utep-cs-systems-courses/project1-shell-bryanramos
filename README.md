@@ -2,9 +2,9 @@
 
 The following commands are supported:
 
-* **exit**: terminate shell
-* **empty input**: reprompts user
-* **cd**: change directory
+* **exit** or **Exit**: terminate shell
+* **empty input**: reprompts user, like in real bash
+* **cd** or **CD**: change directory
   * cd by itself - works in bash and windows by itself
   * cd with an argument
 * **<, >**: redirect

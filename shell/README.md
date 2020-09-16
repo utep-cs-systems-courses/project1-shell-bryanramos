@@ -2,9 +2,9 @@
 
 The following commands are supported:
 
-* **exit**: terminate shell
+* **exit** or **Exit**: terminate shell
 * **empty input**: reprompts user
-* **cd**: change directory
+* **cd** or **CD**: change directory
   * cd by itself - works in bash and windows by itself
   * cd with an argument
 * **<, >**: redirect
@@ -19,4 +19,4 @@ For example, if you type the following in Bash:
 
 ` export PS1="\u@\h [\$(date +%k:%M:%S)]>" `
 
-The current time will be shown in the prompt.
+The current time will be shown in the prompt. Otherwise the default `$` will be shown.

@@ -31,10 +31,10 @@ def inputHandler(userInput):
     if 'exit' in userInput.lower(): # exit command - Exit and exit both work
         sys.exit(0)
 
-    elif userInput == "": # empty input, just reprompt the user
+    elif userInput == "": # empty input, just reprompt the user, like in real bash
         pass
 
-    elif 'cd' in args[0]: # change directory
+    elif 'cd' in args[0].lower(): # change directory - cd and CD both work
         try: 
             # if just 'cd' is specified, move down to parent directory of current directory
             # in bash or windows, you can type in cd by itself and it still works

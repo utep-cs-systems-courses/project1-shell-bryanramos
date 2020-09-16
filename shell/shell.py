@@ -70,18 +70,54 @@ def redirectIn(args):
             pass
         
         for dir in re.split(":", os.environ['PATH']): # try each directory in the path
-                program = "%s/%s" % (dir, args[0])
-                try:
-                    os.execve(program, args, os.environ) # try to exec program
-                except FileNotFoundError:
-                    pass
-            
+            program = "%s/%s" % (dir, args[0])
+            try:
+                os.execve(program, args, os.environ) # try to exec program
+            except FileNotFoundError:
+                pass
+        
             os.write(2, ("%s: command not found\n" % args[0]).encode()) # command not found, print error message
             sys.exit(1)
         
     else:
         childpid = os.wait()
 
+def redirectOut(args):
+    index = args.index('>') + 1
+    filename = args[index] 
+
+    args = args[:index - 1]
+    pid = os.getpid() # get pid
+
+    rc = os.fork()
+
+    if rc < 0:
+        os.write(2, ("fork failed, returning %d\n" % rc).encode())
+        sys.exit(1)
+
+    elif rc == 0:
+        os.close(1)
+
+        sys.stdout = open(filename, "w")
+        os.set_inheritable(1, True)
+
+        if os.path.isfile(args[0]):
+            try:
+                os.execve(args[0], args, os.environ)
+            except FileNotFoundError:
+                pass
+            else:
+                for dir in re.split(":", os.environ['PATH']): # try each directory in the path
+                    program = "%s/%s" % (dir, args[0])
+                    try:
+                        os.execve(program, args, os.environ) # try to exec program
+                    except FileNotFoundError:
+                        pass
+                os.write(2, ("%s: command not found\n" % args[0]).encode()) # command not found, print error message
+                sys.exit(1)
+    
+    else:
+        childpid = os.wait()
 
 def pipe(args):
     pid = os.getpid()

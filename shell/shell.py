@@ -1,13 +1,19 @@
 #! /usr/bin/env python3
 
+# Author: Bryan Ramos
+# Course: Theory of Operating Systems (OS)
+# Instructors: Eric Freudenthal and David Pruitt
+# Assignment: Lab 1 Shell
+# Assignment Description: Create a user shell that mimics some of the behaviors of the bash shell. 
+
 import sys, os, re
 
 def main():
-
+    # infinite loop to continually run shell
     while True:
         if 'PS1' in os.environ:
             os.write(1, (os.environ['PS1']).encode())
-        else:
+        else: # if unset, as per requirements
             os.write(1, ("$ ").encode())
 
         try:
@@ -17,7 +23,7 @@ def main():
         except ValueError:
             sys.exit(1)
 
-        inputHandler(userInput) # handle input method
+        inputHandler(userInput) # handle input method for different arguments (exit, cd, empty, <, >, |)
 
 def inputHandler(userInput):
     args = userInput.split() # tokenize user input arguments
@@ -25,37 +31,39 @@ def inputHandler(userInput):
     if 'exit' in userInput.lower(): # exit command - Exit and exit both work
         sys.exit(0)
 
-    elif userInput == "":   # empty input, just reprompt the user
+    elif userInput == "": # empty input, just reprompt the user
         pass
 
     elif 'cd' in args[0]: # change directory
         try: 
-            if len(args) <= 1: # if just cd is specified, move down to parent directory of current directory
+            # if just 'cd' is specified, move down to parent directory of current directory
+            # in bash or windows, you can type in cd by itself and it still works
+            if len(args) <= 1: 
                 os.chdir("..")
             else: 
                 os.chdir(args[1])
             print(os.getcwd())
-        except FileNotFoundError:
+        except FileNotFoundError: # nonexistent
             os.write(1, ("cd %s: No such file or directory" % args[1]).encode())
             pass
 
-    elif "<" in userInput:
+    elif "<" in userInput: # redirect in
         redirectIn(args)
 
-    elif ">" in userInput: 
+    elif ">" in userInput: # redirect out
         redirectOut(args)
 
     elif '|' in userInput: # pipe: used to read the output from one command and use it for the input of another command (i.e. dir | sort)
         pipe(args)
 
-    else:
+    else: # everything else
         executeCommand(args)
 
 def redirectIn(args):
     pid = os.getpid()
     rc = os.fork()
 
-    if rc < 0:
+    if rc < 0: # capture error during fork
         os.write(2, ("fork failed, returning %d\n" % rc).encode())
         sys.exit(1)
 
@@ -82,6 +90,7 @@ def redirectIn(args):
     else:
         childpid = os.wait()
 
+# based on redirect demo
 def redirectOut(args):
     index = args.index('>') + 1
     filename = args[index] 
@@ -91,17 +100,17 @@ def redirectOut(args):
 
     rc = os.fork()
 
-    if rc < 0:
+    if rc < 0: # capture error during fork
         os.write(2, ("fork failed, returning %d\n" % rc).encode())
         sys.exit(1)
 
     elif rc == 0:
         os.close(1)
 
-        sys.stdout = open(filename, "w")
+        sys.stdout = open(filename, "w") # opening with intent to write
         os.set_inheritable(1, True)
 
-        if os.path.isfile(args[0]):
+        if os.path.isfile(args[0]):  # check whether the specified path is an existing regular file or not
             try:
                 os.execve(args[0], args, os.environ)
             except FileNotFoundError:
@@ -119,17 +128,18 @@ def redirectOut(args):
     else:
         childpid = os.wait()
 
+# based on pipe from pipe-fork demo
 def pipe(args):
     pid = os.getpid()
     pipe = args.index("|") # check for pipe symbol in command
 
-    pr, pw = os.pipe() # tuple
+    pr, pw = os.pipe()
     for f in (pr, pw):
-        os.set_inheritable(f,True)
+        os.set_inheritable(f, True)
     
     rc = os.fork()
 
-    if rc < 0:
+    if rc < 0: # capture error during fork
         os.write(2, ("fork failed, returning %d\n" % rc).encode())
         sys.exit(1)
 
@@ -142,11 +152,13 @@ def pipe(args):
         os.set_inheritable(fd, True)
         for fd in (pr, pw):
             os.close(fd)
-        if os.path.isfile(args[0]):
+
+        if os.path.isfile(args[0]):  # check whether the specified path is an existing regular file or not
             try:
                 os.execve(args[0], args, os.environ)
             except FileNotFoundError:
                 pass
+
         else:
             for dir in re.split(":", os.environ['PATH']): # try each directory in the path
                 program = "%s/%s" % (dir, args[0])
@@ -163,12 +175,12 @@ def pipe(args):
         
         os.close(0)
 
-        fd = os.dup(pr)
+        fd = os.dup(pr) # dup() duplicates file descriptor 
         os.set_inheritable(fd, True)
         for fd in (pw, pr):
             os.close(fd)
         
-        if os.path.isfile(args[0]):
+        if os.path.isfile(args[0]): # check whether the specified path is an existing regular file or not
             try:
                 os.execve(args[0], args, os.environ)
             except FileNotFoundError:

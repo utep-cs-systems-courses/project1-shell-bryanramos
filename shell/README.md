@@ -3,7 +3,7 @@
 The following commands are supported:
 
 * **exit** or **Exit**: terminate shell
-* **empty input**: reprompts user
+* **empty input**: reprompts user, like in real bash
 * **cd** or **CD**: change directory
   * cd by itself - works in bash and windows by itself
   * cd with an argument

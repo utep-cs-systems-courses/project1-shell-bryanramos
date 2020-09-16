@@ -19,7 +19,7 @@ For example, if you type the following in Bash:
 
 ` export PS1="\u@\h [\$(date +%k:%M:%S)]>" `
 
-The current time will be shown in the prompt.
+The current time will be shown in the prompt. Otherwise the default `$` will be shown.
 
 ## Unix Shell
 

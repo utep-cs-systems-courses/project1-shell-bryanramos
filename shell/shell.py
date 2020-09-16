@@ -39,6 +39,9 @@ def inputHandler(userInput):
             os.write(1, ("cd %s: No such file or directory" % args[1]).encode())
             pass
 
+    elif "<" in userInput:
+        redirectIn(args)
+
     elif ">" in userInput: 
         redirectOut(args)
 
@@ -47,6 +50,38 @@ def inputHandler(userInput):
 
     else:
         executeCommand(args)
+
+def redirectIn(args):
+    pid = os.getpid()
+    rc = os.fork()
+
+    if rc < 0:
+        os.write(2, ("fork failed, returning %d\n" % rc).encode())
+        sys.exit(1)
+
+    elif rc == 0:
+        del args[1]
+        # set file descriptor out
+        fd = sys.stdout.fileno() 
+
+        try:
+            os.execve(args[0], args, os.environ)
+        except FileNotFoundError:
+            pass
+        
+        for dir in re.split(":", os.environ['PATH']): # try each directory in the path
+                program = "%s/%s" % (dir, args[0])
+                try:
+                    os.execve(program, args, os.environ) # try to exec program
+                except FileNotFoundError:
+                    pass
+            
+            os.write(2, ("%s: command not found\n" % args[0]).encode()) # command not found, print error message
+            sys.exit(1)
+        
+    else:
+        childpid = os.wait()
+
 
 def pipe(args):
     pid = os.getpid()

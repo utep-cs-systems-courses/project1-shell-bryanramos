@@ -25,6 +25,7 @@ def main():
 
         inputHandler(userInput) # handle input method for different arguments (exit, cd, empty, <, >, |)
 
+
 def inputHandler(userInput):
     args = userInput.split() # tokenize user input arguments
 
@@ -59,6 +60,7 @@ def inputHandler(userInput):
     else: # everything else
         executeCommand(args)
 
+
 def redirectIn(args):
     pid = os.getpid()
     rc = os.fork()
@@ -90,6 +92,7 @@ def redirectIn(args):
     else:
         childpid = os.wait()
 
+
 # based on redirect demo
 def redirectOut(args):
     index = args.index('>') + 1
@@ -115,6 +118,7 @@ def redirectOut(args):
                 os.execve(args[0], args, os.environ)
             except FileNotFoundError:
                 pass
+                
             else:
                 for dir in re.split(":", os.environ['PATH']): # try each directory in the path
                     program = "%s/%s" % (dir, args[0])
@@ -127,6 +131,7 @@ def redirectOut(args):
     
     else:
         childpid = os.wait()
+
 
 # based on pipe from pipe-fork demo
 def pipe(args):
@@ -177,6 +182,7 @@ def pipe(args):
 
         fd = os.dup(pr) # dup() duplicates file descriptor 
         os.set_inheritable(fd, True)
+
         for fd in (pw, pr):
             os.close(fd)
         
@@ -185,6 +191,7 @@ def pipe(args):
                 os.execve(args[0], args, os.environ)
             except FileNotFoundError:
                 pass
+
         else:
             for dir in re.split(":", os.environ['PATH']): # try each directory in the path
                 program = "%s/%s" % (dir, args[0])
@@ -195,6 +202,7 @@ def pipe(args):
             
             os.write(2, ("%s: command not found\n" % args[0]).encode()) # command not found, print error message
             sys.exit(1)
+
 
 def executeCommand(args):
     pid = os.getpid()
@@ -219,6 +227,7 @@ def executeCommand(args):
     
     else:
         childpid = os.wait()
+
 
 if __name__ == "__main__":
     main()

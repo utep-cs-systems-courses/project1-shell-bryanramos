@@ -8,6 +8,8 @@
 
 import sys, os, re
 
+wait = True
+
 def main():
     # infinite loop to continually run shell
     while True:
@@ -22,116 +24,85 @@ def main():
             sys.exit(1)
         except ValueError:
             sys.exit(1)
+        
+        userInput = userInput.split("\n")
 
-        inputHandler(userInput) # handle input method for different arguments (exit, cd, empty, <, >, |)
-
-
+        for arg in userInput: 
+            inputHandler(arg)
+        
+    
 def inputHandler(userInput):
     args = userInput.split() # tokenize user input arguments
 
-    if 'exit' in userInput.lower(): # exit command - Exit and exit both work
+    if '&' in args:
+        wait = False
+        args.remove("&")
+
+    if ('exit' in args) or ('Exit' in args): # exit command - Exit and exit both work
         sys.exit(0)
 
-    elif userInput == "": # empty input, just reprompt the user, like in real bash
+    elif args == "": # empty input, just reprompt the user, like in real bash
         pass
 
-    elif 'cd' in args[0].lower(): # change directory - cd and CD both work
-        try: 
-            # if just 'cd' is specified, move down to parent directory of current directory
-            # in bash or windows, you can type in cd by itself and it still works
-            if len(args) <= 1: 
-                os.chdir("..")
-            else: 
-                os.chdir(args[1])
-            print(os.getcwd())
-        except FileNotFoundError: # nonexistent
-            os.write(1, ("cd %s: No such file or directory" % args[1]).encode())
+    elif 'echo' in args: # echo back to the user their input
+        os.write(2, (args[1:]).encode())
+
+    elif args[0][0] == '/':
+        try:
+            os.execve(args[0], args, os.environ)  # try to exec program     
+        except FileNotFoundError:
             pass
 
-    elif "<" in userInput: # redirect in
+    elif 'cd' == args[0].lower(): # change directory - cd and CD both work
+        try: 
+            os.chdir(args[1])
+        except FileNotFoundError: # nonexistent
+            pass
+
+    elif '|' in args: # pipe: used to read the output from one command and use it for the input of another command (i.e. dir | sort)
+        pipe(args)
+
+    elif '<' in args:
         redirectIn(args)
 
-    elif ">" in userInput: # redirect out
+    elif '>' in args:
         redirectOut(args)
-
-    elif '|' in userInput: # pipe: used to read the output from one command and use it for the input of another command (i.e. dir | sort)
-        pipe(args)
 
     else: # everything else
         executeCommand(args)
 
+def redirectIn(inputs):
+    os.close(0)
+    os.open(inputs[inputs.index('<')+1], os.O_RDONLY);
+    os.set_inheritable(0, True)
+    executeCommand(inputs[0:inputs.index('<')])
 
-def redirectIn(args):
-    pid = os.getpid()
-    rc = os.fork()
-
-    if rc < 0: # capture error during fork
-        os.write(2, ("fork failed, returning %d\n" % rc).encode())
-        sys.exit(1)
-
-    elif rc == 0:
-        del args[1]
-        # set file descriptor out
-        fd = sys.stdout.fileno() 
-
-        try:
-            os.execve(args[0], args, os.environ)
-        except FileNotFoundError:
-            pass
-        
-        for dir in re.split(":", os.environ['PATH']): # try each directory in the path
-            program = "%s/%s" % (dir, args[0])
-            try:
-                os.execve(program, args, os.environ) # try to exec program
-            except FileNotFoundError:
-                pass
-        
-            os.write(2, ("%s: command not found\n" % args[0]).encode()) # command not found, print error message
-            sys.exit(1)
-        
-    else:
-        childpid = os.wait()
-
-
-# based on redirect demo
 def redirectOut(args):
-    index = args.index('>') + 1
-    filename = args[index] 
-
-    args = args[:index - 1]
-    pid = os.getpid() # get pid
+    pid = os.getpid()
 
     rc = os.fork()
 
-    if rc < 0: # capture error during fork
-        os.write(2, ("fork failed, returning %d\n" % rc).encode())
+    if rc < 0:
+        os.write(2, ("Failed to fork, returning").encode())
         sys.exit(1)
 
     elif rc == 0:
         os.close(1)
+        os.open(args[args.index('>')+1], os.O_CREAT | os.O_WRONLY)
+        os.set_inheritable(1,True)
 
-        sys.stdout = open(filename, "w") # opening with intent to write
-        os.set_inheritable(1, True)
-
-        if os.path.isfile(args[0]):  # check whether the specified path is an existing regular file or not
+        for dir in re.split(":", os.environ['PATH']): # try each directory in path
+            prog = "%s/%s" % (dir,args[0])
             try:
-                os.execve(args[0], args, os.environ)
+                os.execve(prog, args, os.environ) # try to exec program
             except FileNotFoundError:
                 pass
-                
-            else:
-                for dir in re.split(":", os.environ['PATH']): # try each directory in the path
-                    program = "%s/%s" % (dir, args[0])
-                    try:
-                        os.execve(program, args, os.environ) # try to exec program
-                    except FileNotFoundError:
-                        pass
-                os.write(2, ("%s: command not found\n" % args[0]).encode()) # command not found, print error message
-                sys.exit(1)
-    
-    else:
-        childpid = os.wait()
 
+        os.write(1, ("%s: command not found\n" % args[0]).encode())
+        sys.exit(0)
+
+    else:
+        child_pid = os.wait()
 
 # based on pipe from pipe-fork demo
 def pipe(args):
@@ -203,12 +174,10 @@ def pipe(args):
             os.write(2, ("%s: command not found\n" % args[0]).encode()) # command not found, print error message
             sys.exit(1)
 
-
 def executeCommand(args):
+    # based off of p3-exec demo
     pid = os.getpid()
     rc = os.fork()
-
-    # based off of p3-exec demo
 
     if rc < 0: # capture error during fork
         os.write(2, ("fork failed, returning %d\n" % rc).encode())
@@ -226,7 +195,8 @@ def executeCommand(args):
         sys.exit(1)
     
     else:
-        childpid = os.wait()
+        if wait:
+            childpid = os.wait()
 
 
 if __name__ == "__main__":

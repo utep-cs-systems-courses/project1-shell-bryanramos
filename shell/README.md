@@ -9,6 +9,7 @@ The following commands are supported:
   * cd with an argument
 * **<, >**: redirect
 * **|**: pipe
+* **echo**: echo back the user's input
 * accepts other typical commands in bash like ls, dir, sort, etc.
 
 To run the shell, enter either ./shell.py or python3 shell.py in either WSL, Linux or Mac OS.

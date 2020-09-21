@@ -9,6 +9,7 @@ The following commands are supported:
   * cd with an argument
 * **<, >**: redirect
 * **|**: pipe
+* **echo**: echo back the user's input
 * accepts other typical commands in bash like ls, dir, sort, etc.
 
 To run the shell, enter the shell folder using cd shell.

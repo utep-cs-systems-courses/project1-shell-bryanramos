@@ -47,12 +47,6 @@ def inputHandler(userInput):
     elif 'echo' in args: # echo back to the user their input
         os.write(2, (args[1:]).encode())
 
-    elif args[0][0] == '/':
-        try:
-            os.execve(args[0], args, os.environ)  # try to exec program     
-        except FileNotFoundError:
-            pass
-
     elif 'cd' == args[0].lower(): # change directory - cd and CD both work
         try: 
             os.chdir(args[1])

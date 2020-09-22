@@ -4,7 +4,7 @@
 # Course: Theory of Operating Systems (OS)
 # Instructors: Eric Freudenthal and David Pruitt
 # Assignment: Lab 1 Shell
-# Assignment Description: Create a user shell that mimics some of the behaviors of the UNIX bash shell. 
+# Assignment Description: Create a user shell that mimics some of the behaviors of the bash shell. 
 
 import sys, os, re
 
@@ -70,8 +70,6 @@ def inputHandler(args):
         else:
             if wait:
                 childpid = os.wait()
-                if childpid[1] != 0 and childpid[1] != 256:
-                    os.write(2, ("Program terminated with exit code: %d\n" % childpid[1]).encode())
 
 # based on pipe from pipe-fork demo
 def pipe(args):
